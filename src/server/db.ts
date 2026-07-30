@@ -82,8 +82,8 @@ export function initDB(): DBData {
       const salt = bcrypt.genSaltSync(10);
       parsed.admin = {
         id: 'admin-1',
-        username: 'umar',
-        passwordHash: bcrypt.hashSync('Sho2026@', salt)
+        username: 'admin',
+        passwordHash: bcrypt.hashSync('admin123', salt)
       };
       fs.writeFileSync(DB_PATH, JSON.stringify(parsed, null, 2), 'utf-8');
     }
@@ -98,8 +98,8 @@ export function initDB(): DBData {
       settings: DEFAULT_SETTINGS,
       admin: {
         id: 'admin-1',
-        username: 'umar',
-        passwordHash: bcrypt.hashSync('Sho2026@', salt)
+        username: 'admin',
+        passwordHash: bcrypt.hashSync('admin123', salt)
       },
       jobs: DEFAULT_JOBS
     };

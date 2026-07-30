@@ -17,8 +17,8 @@
   },
   "admin": {
     "id": "admin-1",
-    "username": "umar",
-    "passwordHash": "$2b$10$68qMDZFswf7fZtfbu25lRO8kW1hJ5TbDROnI9S7KMfdqCShjjyR.m"
+    "username": "admin",
+    "passwordHash": "$2b$10$3lF5xktoMh4RWSdtvojogeG9GoYMIHW/TlKFfBtXd5ml8qi1Kw/S."
   },
   "jobs": [
     {
