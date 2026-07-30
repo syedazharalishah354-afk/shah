@@ -393,41 +393,18 @@ export async function fetchUserApplications(token: string): Promise<Application[
 // ADMIN API SERVICES
 
 export async function adminLogin(username: string, password: string): Promise<{ token: string; user: { username: string } }> {
-  try {
-    const res = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
+  const res = await fetch('/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
 
-    const contentType = res.headers.get('content-type') || '';
-    if (res.ok && contentType.includes('application/json')) {
-      const data = await res.json();
-      if (data && data.user && data.user.username && data.token) {
-        return data;
-      }
-    } else if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || 'Invalid username or password.');
-    }
-  } catch (err: any) {
-    if (err.message && err.message !== 'Failed to fetch' && !err.message.includes('Unexpected')) {
-      throw err;
-    }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Invalid username or password.');
   }
 
-  // Safe fallback for client / static deployment
-  const expectedUser = 'umar';
-  const expectedPass = 'Sho2026@';
-
-  if (username.trim() === expectedUser && password === expectedPass) {
-    return {
-      token: 'admin-session-token-2026',
-      user: { username: 'umar' }
-    };
-  }
-
-  throw new Error('Invalid username or password.');
+  return data;
 }
 
 export async function fetchAdminStats(token: string): Promise<ApplicationStats> {
@@ -597,18 +574,20 @@ export async function updateSystemSettings(
 export async function changeAdminPassword(
   token: string,
   currentPassword: string,
-  newPassword: string
-): Promise<void> {
+  newPassword?: string,
+  newUsername?: string
+): Promise<{ message: string; user?: { username: string } }> {
   const res = await fetch('/api/admin/change-password', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`
     },
-    body: JSON.stringify({ currentPassword, newPassword })
+    body: JSON.stringify({ currentPassword, newPassword, newUsername })
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Failed to update password');
+  if (!res.ok) throw new Error(data.error || 'Failed to update credentials');
+  return data;
 }
 
 export async function fetchAdminJobs(token: string): Promise<JobPosition[]> {

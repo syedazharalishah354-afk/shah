@@ -95,10 +95,6 @@ const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunc
 
   const token = authHeader.split(' ')[1];
   try {
-    if (token === 'admin-session-token-2026') {
-      req.adminUser = { id: 'admin-1', username: 'umar' };
-      return next();
-    }
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string; username: string };
     req.adminUser = decoded;
     next();
@@ -521,29 +517,26 @@ app.get('/api/applications/:id', (req: Request, res: Response) => {
 // Admin Login
 app.post('/api/admin/login', (req: Request, res: Response) => {
   const { username, password } = req.body;
-  if (!username || !password) {
+  if (!username || typeof username !== 'string' || !password || typeof password !== 'string') {
     return res.status(400).json({ error: 'Invalid username or password.' });
   }
 
   const db = getDB();
   const trimmedUser = username.trim();
 
-  const isUserMatch = (trimmedUser === 'umar') || (db.admin && db.admin.username === trimmedUser);
-  const isPassMatch = (password === 'Sho2026@') || (db.admin && bcrypt.compareSync(password, db.admin.passwordHash));
+  if (!db.admin || !db.admin.username || !db.admin.passwordHash) {
+    return res.status(500).json({ error: 'Admin account not initialized.' });
+  }
+
+  const isUserMatch = db.admin.username.toLowerCase() === trimmedUser.toLowerCase();
+  const isPassMatch = bcrypt.compareSync(password, db.admin.passwordHash);
 
   if (!isUserMatch || !isPassMatch) {
     return res.status(401).json({ error: 'Invalid username or password.' });
   }
 
-  // Ensure DB record is up to date
-  if (db.admin.username !== 'umar' || !bcrypt.compareSync('Sho2026@', db.admin.passwordHash)) {
-    db.admin.username = 'umar';
-    db.admin.passwordHash = bcrypt.hashSync('Sho2026@', bcrypt.genSaltSync(10));
-    saveDB(db);
-  }
-
   const token = jwt.sign(
-    { id: db.admin.id, username: 'umar' },
+    { id: db.admin.id, username: db.admin.username },
     JWT_SECRET,
     { expiresIn: '24h' }
   );
@@ -551,20 +544,21 @@ app.post('/api/admin/login', (req: Request, res: Response) => {
   res.json({
     message: 'Admin authentication successful.',
     token,
-    user: { username: 'umar' }
+    user: { username: db.admin.username }
   });
 });
 
 // Get Admin Profile
-app.get('/api/admin/me', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
-  res.json({ username: req.adminUser?.username });
+app.get('/api/admin/me', authMiddleware, (_req: AuthenticatedRequest, res: Response) => {
+  const db = getDB();
+  res.json({ username: db.admin?.username || 'admin' });
 });
 
-// Change Admin Password
+// Change Admin Password / Username Credentials
 app.post('/api/admin/change-password', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
-  const { currentPassword, newPassword } = req.body;
-  if (!currentPassword || !newPassword || newPassword.length < 6) {
-    return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
+  const { currentPassword, newPassword, newUsername } = req.body;
+  if (!currentPassword || typeof currentPassword !== 'string') {
+    return res.status(400).json({ error: 'Current password is required.' });
   }
 
   const db = getDB();
@@ -573,11 +567,32 @@ app.post('/api/admin/change-password', authMiddleware, (req: AuthenticatedReques
     return res.status(400).json({ error: 'Current password is incorrect.' });
   }
 
-  const salt = bcrypt.genSaltSync(10);
-  db.admin.passwordHash = bcrypt.hashSync(newPassword, salt);
+  let updated = false;
+
+  if (newUsername && typeof newUsername === 'string' && newUsername.trim()) {
+    db.admin.username = newUsername.trim();
+    updated = true;
+  }
+
+  if (newPassword && typeof newPassword === 'string' && newPassword.trim()) {
+    if (newPassword.trim().length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
+    }
+    const salt = bcrypt.genSaltSync(10);
+    db.admin.passwordHash = bcrypt.hashSync(newPassword.trim(), salt);
+    updated = true;
+  }
+
+  if (!updated) {
+    return res.status(400).json({ error: 'Please provide a new username or password to update.' });
+  }
+
   saveDB(db);
 
-  res.json({ message: 'Admin password updated successfully.' });
+  res.json({
+    message: 'Admin security credentials updated successfully.',
+    user: { username: db.admin.username }
+  });
 });
 
 // Admin Dashboard Stats

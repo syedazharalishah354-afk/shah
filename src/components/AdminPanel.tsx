@@ -287,6 +287,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onRefre
   // Password Form State
   const [currentPass, setCurrentPass] = useState('');
   const [newPass, setNewPass] = useState('');
+  const [newUsernameInput, setNewUsernameInput] = useState('');
   const [passSuccess, setPassSuccess] = useState<string | null>(null);
   const [passError, setPassError] = useState<string | null>(null);
   const [changingPass, setChangingPass] = useState(false);
@@ -328,6 +329,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onRefre
     }
   };
 
+  const loadAdminProfile = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/admin/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.username) {
+          setAdminUsername(data.username);
+          setNewUsernameInput(data.username);
+        }
+      } else if (res.status === 401) {
+        localStorage.removeItem('admin_token');
+        setToken(null);
+      }
+    } catch (err) {
+      console.error('Failed to load admin profile', err);
+    }
+  };
+
   const loadSettings = async () => {
     if (!token) return;
     try {
@@ -346,6 +368,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onRefre
   // Load Admin Data on Auth
   useEffect(() => {
     if (token) {
+      loadAdminProfile();
       loadStats();
       loadApplications();
       loadSettings();
@@ -594,17 +617,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onRefre
     e.preventDefault();
     if (!token) return;
 
+    if (!currentPass) {
+      setPassError('Current password is required to update admin credentials.');
+      return;
+    }
+
     setChangingPass(true);
     setPassError(null);
     setPassSuccess(null);
 
     try {
-      await changeAdminPassword(token, currentPass, newPass);
-      setPassSuccess('Admin password updated successfully.');
+      const res = await changeAdminPassword(token, currentPass, newPass || undefined, newUsernameInput || undefined);
+      setPassSuccess('Admin credentials updated successfully.');
+      if (res.user && res.user.username) {
+        setAdminUsername(res.user.username);
+        setNewUsernameInput(res.user.username);
+      }
       setCurrentPass('');
       setNewPass('');
     } catch (err: any) {
-      setPassError(err.message || 'Password update failed.');
+      setPassError(err.message || 'Credentials update failed.');
     } finally {
       setChangingPass(false);
     }
@@ -1601,9 +1633,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onRefre
                       <Key className="w-4 h-4 text-blue-600" />
                       Change Admin Credentials
                     </h4>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Admin Username</label>
+                      <input
+                        type="text"
+                        value={newUsernameInput}
+                        onChange={(e) => setNewUsernameInput(e.target.value)}
+                        placeholder="Enter admin username"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 font-semibold"
+                      />
+                    </div>
                     
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">Current Password</label>
+                      <label className="block font-bold text-slate-700 mb-1">Current Password *</label>
                       <input
                         type="password"
                         required
@@ -1615,14 +1658,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onRefre
                     </div>
 
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">New Admin Password</label>
+                      <label className="block font-bold text-slate-700 mb-1">New Password (Optional if updating only username)</label>
                       <input
                         type="password"
-                        required
-                        min={6}
                         value={newPass}
                         onChange={(e) => setNewPass(e.target.value)}
-                        placeholder="Enter new strong password"
+                        placeholder="Enter new strong password (min 6 chars)"
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600"
                       />
                     </div>
@@ -1633,7 +1674,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onRefre
                       className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {changingPass ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                      <span>Update Password</span>
+                      <span>Update Credentials</span>
                     </button>
                   </form>
 

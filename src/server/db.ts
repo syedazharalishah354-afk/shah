@@ -77,8 +77,8 @@ export function initDB(): DBData {
     }
     if (!parsed.applications) parsed.applications = [];
 
-    // Ensure admin credentials match umar / Sho2026@
-    if (!parsed.admin || parsed.admin.username !== 'umar') {
+    // Ensure admin credentials object exists with initial defaults if missing
+    if (!parsed.admin || !parsed.admin.username || !parsed.admin.passwordHash) {
       const salt = bcrypt.genSaltSync(10);
       parsed.admin = {
         id: 'admin-1',
