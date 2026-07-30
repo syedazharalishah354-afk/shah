@@ -97,11 +97,11 @@ CREATE TABLE IF NOT EXISTS settings (
   setting_value JSON NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Seed Admin User (username: umar, pass: Sho2026@)
+-- Seed Admin User (username: admin, pass: admin123)
 `;
 
-const adminPassHash = bcrypt.hashSync('Sho2026@', bcrypt.genSaltSync(10));
-sql += `INSERT INTO admin_users (id, username, password_hash) VALUES ('admin-1', 'umar', ${escapeSqlStr(adminPassHash)}) ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash);\n\n`;
+const adminPassHash = bcrypt.hashSync('admin123', bcrypt.genSaltSync(10));
+sql += `INSERT INTO admin_users (id, username, password_hash) VALUES ('admin-1', 'admin', ${escapeSqlStr(adminPassHash)}) ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash);\n\n`;
 
 // Seed System Settings
 sql += `-- Seed System Settings\n`;

@@ -13,7 +13,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({
   onClose,
   onSuccess
 }) => {
-  const [username, setUsername] = useState('umar');
+  const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

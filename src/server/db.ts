@@ -28,7 +28,7 @@ export function initDB(): DBData {
 
   if (!fs.existsSync(DB_PATH)) {
     const salt = bcrypt.genSaltSync(10);
-    const initialPasswordHash = bcrypt.hashSync('Sho2026@', salt);
+    const initialPasswordHash = bcrypt.hashSync('admin123', salt);
 
     const initialData: DBData = {
       users: [],
@@ -36,7 +36,7 @@ export function initDB(): DBData {
       settings: DEFAULT_SETTINGS,
       admin: {
         id: 'admin-1',
-        username: 'umar',
+        username: 'admin',
         passwordHash: initialPasswordHash
       },
       jobs: DEFAULT_JOBS
